@@ -56,10 +56,11 @@ export async function GET() {
     }
   });
 
-  // Fetch gold & oil from Yahoo Finance for real-time prices
+  // Fetch gold, oil & GLD from Yahoo Finance for real-time prices
   const yahooFetches = [
     { key: "gold", symbol: "GC=F" },
     { key: "oil", symbol: "BZ=F" },
+    { key: "gld", symbol: "GLD" },
   ].map(({ key, symbol }) =>
     fetchYahooPrice(symbol).then((r) => {
       if (r) {
