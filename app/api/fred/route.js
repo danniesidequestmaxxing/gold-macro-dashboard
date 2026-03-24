@@ -3,14 +3,13 @@ import { NextResponse } from "next/server";
 const FRED_SERIES = {
   tips:    "DFII10",
   usd:     "DTWEXBGS",
-  oil:     "DCOILBRENTEU",
   fed:     "DFF",
   deficit: "MTSDS133FMS",
 };
 
-async function fetchGoldPrice() {
+async function fetchYahooPrice(symbol) {
   try {
-    const url = "https://query2.finance.yahoo.com/v8/finance/chart/GC=F?interval=1d&range=5d";
+    const url = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=5d`;
     const resp = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0" },
       next: { revalidate: 3600 },
@@ -20,7 +19,7 @@ async function fetchGoldPrice() {
     const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
     return price ? { value: price, date: new Date().toISOString().slice(0, 10) } : null;
   } catch (err) {
-    console.error("Gold price fetch:", err.message);
+    console.error(`Yahoo ${symbol}:`, err.message);
     return null;
   }
 }
@@ -51,15 +50,20 @@ export async function GET() {
     }
   });
 
-  // Fetch gold price from Yahoo Finance (FRED discontinued LBMA gold series)
-  const goldFetch = fetchGoldPrice().then((g) => {
-    if (g) {
-      results.gold = g.value;
-      dates.gold = g.date;
-    }
-  });
+  // Fetch gold & oil from Yahoo Finance for real-time prices
+  const yahooFetches = [
+    { key: "gold", symbol: "GC=F" },
+    { key: "oil", symbol: "BZ=F" },
+  ].map(({ key, symbol }) =>
+    fetchYahooPrice(symbol).then((r) => {
+      if (r) {
+        results[key] = r.value;
+        dates[key] = r.date;
+      }
+    })
+  );
 
-  await Promise.all([...fetches, goldFetch]);
+  await Promise.all([...fetches, ...yahooFetches]);
 
   return NextResponse.json({ data: results, dates, fetched: new Date().toISOString() });
 }
