@@ -56,11 +56,10 @@ export async function GET() {
     }
   });
 
-  // Fetch gold, oil & GLD from Yahoo Finance for real-time prices
+  // Fetch gold & oil from Yahoo Finance for real-time prices
   const yahooFetches = [
     { key: "gold", symbol: "GC=F" },
     { key: "oil", symbol: "BZ=F" },
-    { key: "gld", symbol: "GLD" },
   ].map(({ key, symbol }) =>
     fetchYahooPrice(symbol).then((r) => {
       if (r) {
@@ -71,7 +70,37 @@ export async function GET() {
     })
   );
 
-  await Promise.all([...fetches, ...yahooFetches]);
+  // Fetch GLD ETF flow estimate: (close - open) * volume * 2.5 scale factor
+  const gldFlowFetch = (async () => {
+    try {
+      const url = "https://query2.finance.yahoo.com/v8/finance/chart/GLD?interval=1d&range=5d";
+      const resp = await fetch(url, {
+        headers: { "User-Agent": "Mozilla/5.0" },
+        next: { revalidate: 3600 },
+      });
+      if (!resp.ok) return;
+      const data = await resp.json();
+      const r = data?.chart?.result?.[0];
+      const q = r?.indicators?.quote?.[0];
+      if (!q) return;
+      const closes = q.close, opens = q.open, volumes = q.volume;
+      // Find most recent complete trading day
+      for (let i = closes.length - 1; i >= 0; i--) {
+        if (closes[i] && opens[i] && volumes[i]) {
+          const gldFlow = (closes[i] - opens[i]) * volumes[i];
+          // GLD is ~40% of gold ETF market, scale by 2.5x
+          const totalFlow = +(gldFlow * 2.5 / 1e9).toFixed(3);
+          results.etfFlow = totalFlow;
+          dates.etfFlow = new Date().toISOString().slice(0, 10);
+          break;
+        }
+      }
+    } catch (err) {
+      console.error("GLD flow:", err.message);
+    }
+  })();
+
+  await Promise.all([...fetches, ...yahooFetches, gldFlowFetch]);
 
   return NextResponse.json({ data: results, dates, changes, fetched: new Date().toISOString() });
 }
