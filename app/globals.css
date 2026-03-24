@@ -1,0 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  --bg: #09090b;
+  --surface: rgba(255,255,255,0.02);
+  --border: rgba(255,255,255,0.055);
+  --text: #fff;
+  --text2: rgba(255,255,255,0.4);
+  --text3: rgba(255,255,255,0.25);
+  --green: #10b981;
+  --red: #ef4444;
+  --amber: #f59e0b;
+  --green2: #22c55e;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; }
+
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+@keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+@keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+
+.fu { animation: fadeUp .4s ease both; }
+.sh {
+  background: linear-gradient(90deg,rgba(255,255,255,.02)25%,rgba(255,255,255,.05)50%,rgba(255,255,255,.02)75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+input[type=range] {
+  -webkit-appearance: none; appearance: none;
+  background: rgba(255,255,255,.07); height: 3px;
+  border-radius: 2px; cursor: pointer; outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 12px; height: 12px;
+  border-radius: 50%; background: #fff; border: none;
+}
+
+button {
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
+  border-radius: 7px; color: #fff; padding: 7px 14px; font-size: 12px;
+  cursor: pointer; font-family: 'JetBrains Mono', monospace; transition: all .15s;
+}
+button:hover { background: rgba(255,255,255,.1); }
+button:disabled { opacity: .35; cursor: not-allowed; }
