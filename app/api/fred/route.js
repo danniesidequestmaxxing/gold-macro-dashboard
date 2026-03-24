@@ -9,15 +9,20 @@ const FRED_SERIES = {
 
 async function fetchYahooPrice(symbol) {
   try {
-    const url = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=5d`;
+    const url = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=2d`;
     const resp = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0" },
       next: { revalidate: 3600 },
     });
     if (!resp.ok) return null;
     const data = await resp.json();
-    const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
-    return price ? { value: price, date: new Date().toISOString().slice(0, 10) } : null;
+    const meta = data?.chart?.result?.[0]?.meta;
+    const price = meta?.regularMarketPrice;
+    const prevClose = meta?.chartPreviousClose;
+    if (!price) return null;
+    const change = prevClose ? +(price - prevClose).toFixed(2) : null;
+    const changePct = prevClose ? +((price - prevClose) / prevClose * 100).toFixed(2) : null;
+    return { value: price, prevClose, change, changePct, date: new Date().toISOString().slice(0, 10) };
   } catch (err) {
     console.error(`Yahoo ${symbol}:`, err.message);
     return null;
@@ -32,6 +37,7 @@ export async function GET() {
 
   const results = {};
   const dates = {};
+  const changes = {};
 
   const entries = Object.entries(FRED_SERIES);
   const fetches = entries.map(async ([name, seriesId]) => {
@@ -59,11 +65,12 @@ export async function GET() {
       if (r) {
         results[key] = r.value;
         dates[key] = r.date;
+        if (r.change != null) changes[key] = { change: r.change, changePct: r.changePct };
       }
     })
   );
 
   await Promise.all([...fetches, ...yahooFetches]);
 
-  return NextResponse.json({ data: results, dates, fetched: new Date().toISOString() });
+  return NextResponse.json({ data: results, dates, changes, fetched: new Date().toISOString() });
 }

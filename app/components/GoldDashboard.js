@@ -128,6 +128,7 @@ function Card({ label, value, unit, score, source, sub, override, onOverride }) 
 export default function GoldDashboard() {
   const [fred, setFred] = useState({});
   const [fredDates, setFredDates] = useState({});
+  const [fredChanges, setFredChanges] = useState({});
   const [ai, setAi] = useState({});
   const [ov, setOv] = useState({});
   const [fredStatus, setFredStatus] = useState("idle");
@@ -143,6 +144,7 @@ export default function GoldDashboard() {
       if (j.error) throw new Error(j.error);
       setFred(j.data || {});
       setFredDates(j.dates || {});
+      setFredChanges(j.changes || {});
       setFredStatus("live");
     } catch (err) {
       console.error("FRED:", err);
@@ -221,18 +223,35 @@ export default function GoldDashboard() {
       {/* Ticker */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: 8, marginBottom: 16 }} className="fu">
         {[
-          { l: "Gold spot", v: goldPrice, u: "USD/oz", f: (x) => x?.toLocaleString(), d: fredDates.gold },
-          { l: "Brent crude", v: oilPrice, u: "USD/bbl", f: (x) => x?.toFixed(2), d: fredDates.oil },
+          { l: "Gold spot", v: goldPrice, u: "USD/oz", f: (x) => x?.toLocaleString(), d: fredDates.gold, chg: fredChanges.gold },
+          { l: "Brent crude", v: oilPrice, u: "USD/bbl", f: (x) => x?.toFixed(2), d: fredDates.oil, chg: fredChanges.oil },
           { l: "Fed rate", v: fedRate, u: "%", f: (x) => x?.toFixed(2), d: fredDates.fed },
-          { l: "ETF flows", v: etf, u: "$B/mo", f: (x) => x != null ? (x >= 0 ? "+" : "") + x.toFixed(1) : null },
-        ].map((t, i) => (
-          <div key={i} style={{ background: "rgba(255,255,255,.02)", border: "1px solid rgba(255,255,255,.05)", borderRadius: 8, padding: "10px 12px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 5, fontFamily: "'JetBrains Mono',monospace" }}>
-              <span>{t.l}</span>{t.d && <span style={{ opacity: 0.6 }}>{t.d}</span>}
+          { l: "ETF flows", v: etf, u: "B daily net inflow", f: (x) => x != null ? (x >= 0 ? "+" : "") + x.toFixed(1) : null, etf: true },
+        ].map((t, i) => {
+          const chgColor = t.chg ? (t.chg.change > 0 ? "#22c55e" : t.chg.change < 0 ? "#ef4444" : "rgba(255,255,255,.3)") : null;
+          const etfColor = t.etf && t.v != null ? (t.v > 0 ? "#22c55e" : t.v < 0 ? "#ef4444" : "rgba(255,255,255,.3)") : null;
+          return (
+            <div key={i} style={{ background: "rgba(255,255,255,.02)", border: "1px solid rgba(255,255,255,.05)", borderRadius: 8, padding: "10px 12px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 5, fontFamily: "'JetBrains Mono',monospace" }}>
+                <span>{t.l}</span>{t.d && <span style={{ opacity: 0.6 }}>{t.d}</span>}
+              </div>
+              {anyLoading && t.v == null ? <div className="sh" style={{ width: 72, height: 22 }} /> : (
+                <div>
+                  <span style={{ fontSize: 20, fontWeight: 600, fontFamily: "'JetBrains Mono',monospace", color: etfColor || "#fff" }}>{t.v != null ? t.f(t.v) : "—"}</span>
+                  {t.chg && (
+                    <div style={{ display: "flex", gap: 8, marginTop: 4, fontSize: 11, fontFamily: "'JetBrains Mono',monospace", color: chgColor }}>
+                      <span>{t.chg.change > 0 ? "+" : ""}{t.chg.change.toFixed(2)}</span>
+                      <span>({t.chg.changePct > 0 ? "+" : ""}{t.chg.changePct.toFixed(2)}%)</span>
+                    </div>
+                  )}
+                  {t.etf && t.v != null && (
+                    <div style={{ fontSize: 10, marginTop: 3, color: "rgba(255,255,255,.25)", fontFamily: "'JetBrains Mono',monospace" }}>{t.u}</div>
+                  )}
+                </div>
+              )}
             </div>
-            {anyLoading && t.v == null ? <div className="sh" style={{ width: 72, height: 22 }} /> : <span style={{ fontSize: 20, fontWeight: 600, fontFamily: "'JetBrains Mono',monospace" }}>{t.v != null ? t.f(t.v) : "—"}</span>}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Gauge + Breakdown */}
