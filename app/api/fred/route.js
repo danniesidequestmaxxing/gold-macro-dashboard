@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+export const revalidate = 300; // refresh every 5 minutes
+
 const FRED_SERIES = {
   tips:    "DFII10",
   usd:     "DTWEXBGS",
@@ -12,7 +14,7 @@ async function fetchYahooPrice(symbol) {
     const url = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=2d`;
     const resp = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0" },
-      next: { revalidate: 3600 },
+      next: { revalidate: 300 },
     });
     if (!resp.ok) return null;
     const data = await resp.json();
